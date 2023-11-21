@@ -1,16 +1,14 @@
 import numpy as np
-import math
 import matplotlib.pyplot as plt
+import math
 from matplotlib import colormaps
-import time
 
-# parametry poczatkowe
 delta = 0.2
 nx = 128
 ny = 128
 xmax = delta * nx
 ymax = delta * ny
-TOL = 10**(-8)
+TOL = 1e-8
 kArray = [16,8,4,2,1]
 
 def relaxate(V,k):
@@ -69,7 +67,6 @@ def main():
             V_old = V.copy()
             relaxate(V, k)
             S_value = S(V, k)
-            print(S_value)
             S_values.append(S_value)
             sArr.append(S_value)
             if np.abs(S_value - S(V_old, k)) < TOL:

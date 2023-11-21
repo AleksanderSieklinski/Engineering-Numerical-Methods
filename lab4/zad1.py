@@ -1,9 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import concurrent.futures
 
 def calculate_S(V, rho,S=0):
-    for i in range(0, nx-1):
-        for j in range(0, ny-1):
+    for i in range(0, nx):
+        for j in range(0, ny):
             S += (delta**2) * (0.5*(((V[i+1,j]-V[i,j])/delta)**2) + 0.5*(((V[i,j+1]-V[i,j])/delta)**2) - (rho[i,j]*V[i,j]))
     return S
 
@@ -11,20 +12,20 @@ def global_relaxation(V, rho, omega):
     V_new = np.zeros_like(V)
     V_new[:, 0] = V1
     V_new[:, ny] = V2
-    for i in range(1, nx-1):
-        for j in range(1, ny-1):
+    for i in range(1, nx):
+        for j in range(1, ny):
             V_new[i, j] = 0.25 * (V[i+1, j] + V[i-1, j] + V[i, j+1] + V[i, j-1] + (delta**2/epsilon) * rho[i, j])
-    for j in range (1, ny-1):
-        V[0, j] = V[1, j]
-        V[nx, j] = V[nx-1, j]
+    for j in range (1, ny):
+        V_new[0, j] = V_new[1, j]
+        V_new[nx, j] = V_new[nx-1, j]
     V = (1 - omega) * V + omega * V_new
     return V
 
 def local_relaxation(V, rho, omega):
-    for i in range(1, nx-1):
-        for j in range(1, ny-1):
+    for i in range(1, nx):
+        for j in range(1, ny):
             V[i, j] = (1 - omega) * V[i, j] + (omega/4) * (V[i+1, j] + V[i-1, j] + V[i, j+1] + V[i, j-1] + (delta**2/epsilon) * rho[i, j])
-    for j in range (1, ny-1):
+    for j in range (1, ny):
         V[0, j] = V[1, j]
         V[nx, j] = V[nx-1, j]
     return V
@@ -35,13 +36,47 @@ def rho(x, y):
     return rho1 + rho2
 
 def laplacian(V):
-    laplacian_V = np.zeros_like(V)
-    laplacian_V[1:-1, 1:-1] = (V[1:-1, :-2] + V[1:-1, 2:] + V[:-2, 1:-1] + V[2:, 1:-1] - 4*V[1:-1, 1:-1])
-    return laplacian_V
+    grad_x, grad_y = np.gradient(V)
+    grad_xx, _ = np.gradient(grad_x)
+    _, grad_yy = np.gradient(grad_y)
+    return grad_xx + grad_yy
 
 def solve_error(V, rho):
     delta = laplacian(V) + rho/epsilon
+    # make all negative values positive
+    delta[delta < 0] *= -1
     return delta
+
+def compute_for_omega(omega, relaxation_type):
+    V = np.zeros((nx+1, ny+1))
+    V[:, 0] = V1
+    V[:, ny] = V2
+    S_list = []
+    S = calculate_S(V, rho_array)
+    it = 0
+    if relaxation_type == 'global':
+        while True:
+            V = global_relaxation(V, rho_array, omega)
+            it += 1
+            S_new = calculate_S(V, rho_array)
+            S_list.append(S_new)
+            check = abs((S_new - S)/S)
+            if check < TOL:
+                break
+            S = S_new
+    elif relaxation_type == 'local':
+        while True:
+            V = local_relaxation(V, rho_array, omega)
+            it += 1
+            S_new = calculate_S(V, rho_array)
+            S_list.append(S_new)
+            check = abs((S_new - S)/S)
+            if check < TOL:
+                break
+            S = S_new
+    else:
+        raise ValueError("Invalid relaxation_type. Expected 'global' or 'local'.")
+    return S_list, it, V
 
 epsilon = 1
 delta = 0.1
@@ -56,13 +91,8 @@ sigma_y = 0.1 * ymax
 omega_G = [0.6, 1.0]
 omega_L = [1.0, 1.4, 1.8, 1.9]
 TOL = 1e-8
-V = np.zeros((nx+1, ny+1))
-V_06 = np.zeros((nx+1, ny+1))
-V_10 = np.zeros((nx+1, ny+1))
-V_06[:, 0] = V1
-V_06[:, ny] = V2
-V_10[:, 0] = V1
-V_10[:, ny] = V2
+delta_dict = {}
+V_dict = {}
 
 rho_array = np.zeros((nx+1, ny+1))
 for i in range(nx+1):
@@ -70,60 +100,22 @@ for i in range(nx+1):
         rho_array[i, j] = rho(i*delta, j*delta)
 
 fig, (ax1, ax2) = plt.subplots(1, 2)
-# zad1 globalna omega = 0.6
-omega = 0.6
-S_list = []
-S = calculate_S(V_06, rho_array)
-S_list.append(S)
-it = 0
-while True:
-    V_06 = global_relaxation(V_06, rho_array, omega)
-    it += 1
-    S_new = calculate_S(V_06, rho_array)
-    S_list.append(S_new)
-    check = abs((S_new - S)/S)
-    print(TOL, "\t>\t", check, "\t", S, "\t", it)
-    if check < TOL:
-        break
-    S = S_new
-ax1.plot(S_list, label=f'omega={omega}, {it} it')
-# zad1 globalna omega = 1.0
-omega = 1.0
-S_list = []
-S = calculate_S(V_10, rho_array)
-S_list.append(S)
-it = 0
-while True:
-    V_10 = global_relaxation(V_10, rho_array, omega)
-    it += 1
-    S_new = calculate_S(V_10, rho_array)
-    S_list.append(S_new)
-    check = abs((S_new - S)/S)
-    print(TOL, "\t>\t", check, "\t", S, "\t", it)
-    if check < TOL:
-        break
-    S = S_new
-ax1.plot(S_list, label=f'omega={omega}, {it} it')
-# zad2 lokalna
-for omega in omega_L:
-    V = np.zeros((nx+1, ny+1))
-    V[:, 0] = V1
-    V[:, ny] = V2
-    S_list = []
-    S = calculate_S(V, rho_array)
-    S_list.append(S)
-    it = 0
-    while True:
-        V = local_relaxation(V, rho_array, omega)
-        it += 1
-        S_new = calculate_S(V, rho_array)
-        S_list.append(S_new)
-        check = abs((S_new - S)/S)
-        print(TOL, "\t>\t", check, "\t", S, "\t", it)
-        if check < TOL:
-            break
-        S = S_new
-    ax2.plot(S_list, label=f'omega={omega}, {it} it')
+
+with concurrent.futures.ThreadPoolExecutor() as executor:
+    futures = []
+
+    for omega in omega_G:
+        futures.append((omega,'global', executor.submit(compute_for_omega, omega, 'global')))
+    for omega in omega_L:
+        futures.append((omega,'local', executor.submit(compute_for_omega, omega, 'local')))
+
+    for omega_val,relaxation_type, future in futures:
+        S_list, it, V = future.result()
+        ax = ax1 if relaxation_type == 'global' else ax2
+        ax.plot(S_list, label=f'omega={omega_val}, {len(S_list)} it')
+        if relaxation_type == 'global' and (omega_val == 0.6 or omega_val == 1.0):
+            V_dict[omega_val] = V
+            delta_dict[omega_val] = solve_error(V, rho_array)
 
 ax1.set_title('Relaksacja globalna')
 ax1.set_xlabel('Nr iteracji')
@@ -141,9 +133,7 @@ plt.savefig("z1_relaxation.png",bbox_inches='tight',transparent=True)
 plt.show()
 plt.clf()
 
-delta = solve_error(V_06, rho_array)
-
-plt.imshow(delta, cmap='jet', extent=[0, xmax, 0, ymax])
+plt.imshow(delta_dict[0.6], cmap='jet', extent=[0, xmax, 0, ymax])
 plt.colorbar()
 plt.title('Relaksacja globalna w=0.6')
 plt.xlabel('x')
@@ -152,13 +142,29 @@ plt.savefig("z1_error_06.png",bbox_inches='tight',transparent=True)
 plt.show()
 plt.clf()
 
-delta = solve_error(V_10, rho_array)
-
-plt.imshow(delta, cmap='jet', extent=[0, xmax, 0, ymax])
+plt.imshow(delta_dict[1.0], cmap='jet', extent=[0, xmax, 0, ymax])
 plt.colorbar()
 plt.xlabel('x')
 plt.ylabel('y')
 plt.title('Relaksacja globalna w=1.0')
 plt.savefig("z1_error_10.png",bbox_inches='tight',transparent=True)
+plt.show()
+plt.clf()
+
+plt.imshow(V_dict[0.6], cmap='jet', extent=[0, xmax, 0, ymax])
+plt.colorbar()
+plt.xlabel('x')
+plt.ylabel('y')
+plt.title('Relaksacja globalna w=0.6')
+plt.savefig("z1_V_06.png",bbox_inches='tight',transparent=True)
+plt.show()
+plt.clf()
+
+plt.imshow(V_dict[1.0], cmap='jet', extent=[0, xmax, 0, ymax])
+plt.colorbar()
+plt.xlabel('x')
+plt.ylabel('y')
+plt.title('Relaksacja globalna w=1.0')
+plt.savefig("z1_V_10.png",bbox_inches='tight',transparent=True)
 plt.show()
 plt.clf()

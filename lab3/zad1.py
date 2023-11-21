@@ -79,7 +79,6 @@ def solve_equation(method, xn, vn, dt, alpha, tol, tmax, S=0.75, p=2):
             dt_list.append(dt)
             t_list.append(t)
         dt = control_step_size(dt,S,tol,p,Ex,Ev)
-        print(t, dt,tmax)
     return x_list, v_list, dt_list,t_list
 
 x_list1, v_list1, dt_list1,t_list1 = solve_equation(RK2, x0, v0, dt0, alpha, tol1, tmax)
