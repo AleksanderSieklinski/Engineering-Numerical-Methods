@@ -1,164 +1,157 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def calculate_S(V, rho,S=0):
-    for i in range(0, nx-1):
-        for j in range(0, ny-1):
-            S += (delta**2) * (0.5*(((V[i+1,j]-V[i,j])/delta)**2) + 0.5*(((V[i,j+1]-V[i,j])/delta)**2) - (rho[i,j]*V[i,j]))
-    return S
+x0 = 0.01
+v0 = 0
+dt0 = 1
+S = 0.75
+tol1 = 1e-2
+tol2 = 1e-5
+tmax = 40
+alpha = 5
 
-def global_relaxation(V, rho, omega):
-    V_new = np.zeros_like(V)
-    V_new[:, 0] = V1
-    V_new[:, ny] = V2
-    for i in range(1, nx-1):
-        for j in range(1, ny-1):
-            V_new[i, j] = 0.25 * (V[i+1, j] + V[i-1, j] + V[i, j+1] + V[i, j-1] + (delta**2/epsilon) * rho[i, j])
-    for j in range (1, ny-1):
-        V[0, j] = V[1, j]
-        V[nx, j] = V[nx-1, j]
-    V = (1 - omega) * V + omega * V_new
-    return V
+def f(t, x, v, alpha):
+    return v
 
-def local_relaxation(V, rho, omega):
-    for i in range(1, nx-1):
-        for j in range(1, ny-1):
-            V[i, j] = (1 - omega) * V[i, j] + (omega/4) * (V[i+1, j] + V[i-1, j] + V[i, j+1] + V[i, j-1] + (delta**2/epsilon) * rho[i, j])
-    for j in range (1, ny-1):
-        V[0, j] = V[1, j]
-        V[nx, j] = V[nx-1, j]
-    return V
+def g(t, x, v, alpha):
+    return alpha*(1-x**2)*v - x
 
-def rho(x, y):
-    rho1 = np.exp(-((x - 0.35 * xmax)**2 / sigma_x**2 + (y - 0.5 * ymax)**2 / sigma_y**2))
-    rho2 =-np.exp(-((x - 0.65 * xmax)**2 / sigma_x**2 + (y - 0.5 * ymax)**2 / sigma_y**2))
-    return rho1 + rho2
-
-def laplacian(V):
-    laplacian_V = np.zeros_like(V)
-    laplacian_V[1:-1, 1:-1] = (V[1:-1, :-2] + V[1:-1, 2:] + V[:-2, 1:-1] + V[2:, 1:-1] - 4*V[1:-1, 1:-1])
-    return laplacian_V
-
-def solve_error(V, rho):
-    delta = laplacian(V) + rho/epsilon
-    return delta
-
-epsilon = 1
-delta = 0.1
-nx = 150
-ny = 100
-V1 = 10
-V2 = 0
-xmax = delta * nx
-ymax = delta * ny
-sigma_x = 0.1 * xmax
-sigma_y = 0.1 * ymax
-omega_G = [0.6, 1.0]
-omega_L = [1.0, 1.4, 1.8, 1.9]
-TOL = 1e-8
-V = np.zeros((nx+1, ny+1))
-V_06 = np.zeros((nx+1, ny+1))
-V_10 = np.zeros((nx+1, ny+1))
-V_06[:, 0] = V1
-V_06[:, ny] = V2
-V_10[:, 0] = V1
-V_10[:, ny] = V2
-
-rho_array = np.zeros((nx+1, ny+1))
-for i in range(nx+1):
-    for j in range(ny+1):
-        rho_array[i, j] = rho(i*delta, j*delta)
-
-fig, (ax1, ax2) = plt.subplots(1, 2)
-# zad1 globalna omega = 0.6
-omega = 0.6
-S_list = []
-S = calculate_S(V_06, rho_array)
-S_list.append(S)
-it = 0
-while True:
-    V_06 = global_relaxation(V_06, rho_array, omega)
-    it += 1
-    S_new = calculate_S(V_06, rho_array)
-    S_list.append(S_new)
-    check = abs((S_new - S)/S)
-    print(TOL, "\t>\t", check, "\t", S, "\t", it)
-    if check < TOL:
-        break
-    S = S_new
-ax1.plot(S_list, label=f'omega={omega}, {it} it')
-# zad1 globalna omega = 1.0
-omega = 1.0
-S_list = []
-S = calculate_S(V_10, rho_array)
-S_list.append(S)
-it = 0
-while True:
-    V_10 = global_relaxation(V_10, rho_array, omega)
-    it += 1
-    S_new = calculate_S(V_10, rho_array)
-    S_list.append(S_new)
-    check = abs((S_new - S)/S)
-    print(TOL, "\t>\t", check, "\t", S, "\t", it)
-    if check < TOL:
-        break
-    S = S_new
-ax1.plot(S_list, label=f'omega={omega}, {it} it')
-# zad2 lokalna
-for omega in omega_L:
-    V = np.zeros((nx+1, ny+1))
-    V[:, 0] = V1
-    V[:, ny] = V2
-    S_list = []
-    S = calculate_S(V, rho_array)
-    S_list.append(S)
-    it = 0
+def trapezoidal(xn, vn, dt, alpha):
+    def F(xnp1, vnp1):
+        return xnp1 - xn - 0.5*dt*(f(0, xn, vn, alpha) + f(0, xnp1, vnp1, alpha))
+    
+    def G(xnp1, vnp1):
+        return vnp1 - vn - 0.5*dt*(g(0, xn, vn, alpha) + g(0, xnp1, vnp1, alpha))
+    
+    xnp1 = xn
+    vnp1 = vn
+    a11 = 1
+    a12 = -0.5*dt
     while True:
-        V = local_relaxation(V, rho_array, omega)
-        it += 1
-        S_new = calculate_S(V, rho_array)
-        S_list.append(S_new)
-        check = abs((S_new - S)/S)
-        print(TOL, "\t>\t", check, "\t", S, "\t", it)
-        if check < TOL:
+        F_val = F(xnp1, vnp1)
+        G_val = G(xnp1, vnp1)
+
+        a21 = -0.5*dt*(-2*alpha*xnp1*vnp1 - 1)
+        a22 = 1 - 0.5*dt*alpha*(1 - xnp1**2)
+
+        dx = (-F_val*a22 + G_val*a12)/(a11*a22 - a12*a21)
+        dv = (F_val*a21 - G_val*a11)/(a11*a22 - a12*a21)
+
+        xnp1 += dx
+        vnp1 += dv
+
+        if max(abs(dx), abs(dv)) < 1e-10:
             break
-        S = S_new
-    ax2.plot(S_list, label=f'omega={omega}, {it} it')
+    
+    return xnp1, vnp1
 
-ax1.set_title('Relaksacja globalna')
-ax1.set_xlabel('Nr iteracji')
-ax1.set_ylabel('S')
-ax1.set_xticks([1,10, 100, 1000, 10000, 100000])
-ax1.set_xscale('log')
-ax1.legend()
-ax2.set_title('Relaksacja lokalna')
-ax2.set_xlabel('Nr iteracji')
-ax2.set_ylabel('S')
-ax2.set_xticks([1,10, 100, 1000, 10000, 100000])
-ax2.set_xscale('log')
-ax2.legend()
-plt.savefig("z1_relaxation.png",bbox_inches='tight',transparent=True)
-plt.show()
-plt.clf()
 
-delta = solve_error(V_06, rho_array)
+def RK2(xn, vn, dt, alpha):
+    k1x = f(0, xn, vn, alpha)
+    k1v = g(0, xn, vn, alpha)
+    k2x = f(0, xn + dt*k1x, vn + dt*k1v, alpha)
+    k2v = g(0, xn + dt*k1x, vn + dt*k1v, alpha)
+    xn1 = xn + 0.5*dt*(k1x + k2x)
+    vn1 = vn + 0.5*dt*(k1v + k2v)
+    return xn1, vn1
 
-plt.imshow(delta, cmap='jet', extent=[0, xmax, 0, ymax])
-plt.colorbar()
-plt.title('Relaksacja globalna w=0.6')
+def control_step_size(dt, S, tol, p, Ex, Ev):
+    return ((S*tol)/max(abs(Ex), abs(Ev)))**(1/(p+1))*dt
+
+def solve_equation(method, xn, vn, dt, alpha, tol, tmax, S=0.75, p=2):
+    t = 0
+    x_list = [xn]
+    v_list = [vn]
+    dt_list = [dt]
+    t_list = [t]
+    while t < tmax:
+        xn1, vn1 = method(xn, vn, dt, alpha)
+        xn2, vn2 = method(xn1, vn1, dt, alpha)
+        xn21, vn21 = method(xn, vn, 2*dt, alpha)
+        Ex = (xn2 - xn21)/(2**p - 1)
+        Ev = (vn2 - vn21)/(2**p - 1)
+        if max(abs(Ex), abs(Ev)) < tol:
+            t += 2*dt
+            xn = xn2
+            vn = vn2
+            x_list.append(xn)
+            v_list.append(vn)
+            dt_list.append(dt)
+            t_list.append(t)
+        dt = control_step_size(dt,S,tol,p,Ex,Ev)
+        print(t, dt,tmax)
+    return x_list, v_list, dt_list,t_list
+
+x_list1, v_list1, dt_list1,t_list1 = solve_equation(RK2, x0, v0, dt0, alpha, tol1, tmax)
+x_list2, v_list2, dt_list2,t_list2 = solve_equation(RK2, x0, v0, dt0, alpha, tol2, tmax)
+
+plt.figure(figsize=(10, 8))
+plt.subplot(2, 2, 1)
+plt.plot(t_list1, x_list1)
+plt.plot(t_list2, x_list2)
+plt.xlim([0, tmax])
+plt.title('Metoda RK2')
+plt.xlabel('t')
+plt.ylabel('x(t)')
+plt.legend(['TOL=1e-2', 'TOL=1e-5'])
+plt.subplot(2, 2, 2)
+plt.plot(t_list1, v_list1)
+plt.plot(t_list2, v_list2)
+plt.xlim([0, tmax])
+plt.title('Metoda RK2')
+plt.xlabel('t')
+plt.ylabel('v(t)')
+plt.legend(['TOL=1e-2', 'TOL=1e-5'])
+plt.subplot(2, 2, 3)
+plt.plot(t_list1, dt_list1, 'o-', markersize=3)  
+plt.plot(t_list2, dt_list2, 'o-', markersize=3)
+plt.xlim([0, tmax])
+plt.title('Metoda RK2')
+plt.xlabel('t')
+plt.ylabel('dt(t)')
+plt.legend(['TOL=1e-2', 'TOL=1e-5'])
+plt.subplot(2, 2, 4)
+plt.plot(x_list1, v_list1)
+plt.plot(x_list2, v_list2)
+plt.title('Metoda RK2')
 plt.xlabel('x')
-plt.ylabel('y')
-plt.savefig("z1_error_06.png",bbox_inches='tight',transparent=True)
+plt.ylabel('v')
+plt.legend(['TOL=1e-2', 'TOL=1e-5'])
 plt.show()
-plt.clf()
 
-delta = solve_error(V_10, rho_array)
+x_list1, v_list1, dt_list1,t_list1 = solve_equation(trapezoidal, x0, v0, dt0, alpha, tol1, tmax)
+x_list2, v_list2, dt_list2,t_list2 = solve_equation(trapezoidal, x0, v0, dt0, alpha, tol2, tmax)
 
-plt.imshow(delta, cmap='jet', extent=[0, xmax, 0, ymax])
-plt.colorbar()
+plt.figure(figsize=(10, 8))
+plt.subplot(2, 2, 1)
+plt.plot(t_list1, x_list1)  
+plt.plot(t_list2, x_list2)
+plt.xlim([0, tmax])
+plt.title('Metoda trapezow')
+plt.xlabel('t')
+plt.ylabel('x(t)')
+plt.legend(['TOL=1e-2', 'TOL=1e-5'])
+plt.subplot(2, 2, 2)
+plt.plot(t_list1, v_list1)  
+plt.plot(t_list2, v_list2)
+plt.xlim([0, tmax])
+plt.title('Metoda trapezow')
+plt.xlabel('t')
+plt.ylabel('v(t)')
+plt.legend(['TOL=1e-2', 'TOL=1e-5'])
+plt.subplot(2, 2, 3)
+plt.plot(t_list1, dt_list1, 'o-', markersize=3)  
+plt.plot(t_list2, dt_list2, 'o-', markersize=3)
+plt.xlim([0, tmax])
+plt.title('Metoda trapezow')
+plt.xlabel('t')
+plt.ylabel('dt(t)')
+plt.legend(['TOL=1e-2', 'TOL=1e-5'])
+plt.subplot(2, 2, 4)
+plt.plot(x_list1, v_list1)
+plt.plot(x_list2, v_list2)
+plt.title('Metoda trapezow')
 plt.xlabel('x')
-plt.ylabel('y')
-plt.title('Relaksacja globalna w=1.0')
-plt.savefig("z1_error_10.png",bbox_inches='tight',transparent=True)
+plt.ylabel('v')
+plt.legend(['TOL=1e-2', 'TOL=1e-5'])
 plt.show()
-plt.clf()
