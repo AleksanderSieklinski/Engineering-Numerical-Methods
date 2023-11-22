@@ -113,6 +113,7 @@ with concurrent.futures.ThreadPoolExecutor() as executor:
         S_list, it, V = future.result()
         ax = ax1 if relaxation_type == 'global' else ax2
         ax.plot(S_list, label=f'omega={omega_val}, {len(S_list)} it')
+        print(f'type={relaxation_type}, omega={omega_val}, it={it}')
         if relaxation_type == 'global' and (omega_val == 0.6 or omega_val == 1.0):
             V_dict[omega_val] = V
             delta_dict[omega_val] = solve_error(V, rho_array)
