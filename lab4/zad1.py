@@ -1,13 +1,15 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import concurrent.futures
+import numba as nb
 
+@nb.jit(nopython=True)
 def calculate_S(V, rho,S=0):
     for i in range(0, nx):
         for j in range(0, ny):
             S += (delta**2) * (0.5*(((V[i+1,j]-V[i,j])/delta)**2) + 0.5*(((V[i,j+1]-V[i,j])/delta)**2) - (rho[i,j]*V[i,j]))
     return S
-
+@nb.jit(nopython=True)
 def global_relaxation(V, rho, omega):
     V_new = np.zeros_like(V)
     V_new[:, 0] = V1
@@ -20,7 +22,7 @@ def global_relaxation(V, rho, omega):
         V_new[nx, j] = V_new[nx-1, j]
     V = (1 - omega) * V + omega * V_new
     return V
-
+@nb.jit(nopython=True)
 def local_relaxation(V, rho, omega):
     for i in range(1, nx):
         for j in range(1, ny):
@@ -29,24 +31,22 @@ def local_relaxation(V, rho, omega):
         V[0, j] = V[1, j]
         V[nx, j] = V[nx-1, j]
     return V
-
+@nb.jit(nopython=True)
 def rho(x, y):
     rho1 = np.exp(-((x - 0.35 * xmax)**2 / sigma_x**2 + (y - 0.5 * ymax)**2 / sigma_y**2))
     rho2 =-np.exp(-((x - 0.65 * xmax)**2 / sigma_x**2 + (y - 0.5 * ymax)**2 / sigma_y**2))
     return rho1 + rho2
-
 def laplacian(V):
     grad_x, grad_y = np.gradient(V)
     grad_xx, _ = np.gradient(grad_x)
     _, grad_yy = np.gradient(grad_y)
-    return grad_xx + grad_yy
-
+    return (grad_xx + grad_yy)/(delta**2)
 def solve_error(V, rho):
     delta = laplacian(V) + rho/epsilon
     # make all negative values positive
     delta[delta < 0] *= -1
     return delta
-
+@nb.jit(nopython=True)
 def compute_for_omega(omega, relaxation_type):
     V = np.zeros((nx+1, ny+1))
     V[:, 0] = V1

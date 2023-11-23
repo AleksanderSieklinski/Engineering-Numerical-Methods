@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 from matplotlib import colormaps
+import numba as nb
 
 delta = 0.2
 nx = 128
@@ -11,11 +12,12 @@ ymax = delta * ny
 TOL = 1e-8
 kArray = [16,8,4,2,1]
 
+@nb.jit(nopython=True)
 def relaxate(V,k):
     for i in range(k,nx,k):
         for j in range(k,ny,k):
             V[i][j] = 0.25*(V[i+k][j] + V[i-k][j] + V[i][j+k] + V[i][j-k])
-
+@nb.jit(nopython=True)
 def S(V,k):
     sum = 0
     for i in range(0,nx,k):
@@ -25,7 +27,7 @@ def S(V,k):
             pow((V[i,j+k] - V[i,j] + V[i+k,j+k] - V[i+k,j])/(2*k*delta),2) 
             )
     return sum
-
+@nb.jit(nopython=True)
 def dens_mesh(V,k):
     k2 = k//2
     for i in range(0,nx,k):
@@ -35,7 +37,7 @@ def dens_mesh(V,k):
             V[i+k2][j+k] = 0.5*(V[i][j+k]+V[i+k][j+k])
             V[i+k2][j] = 0.5*(V[i][j]+V[i+k][j])
             V[i][j+k2] = 0.5*(V[i][j]+V[i][j+k])
-
+@nb.jit(nopython=False)
 def main():
     V = np.zeros((nx+1, ny+1))
     sArray = {}
