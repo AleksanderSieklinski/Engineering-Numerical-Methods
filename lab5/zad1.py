@@ -37,7 +37,7 @@ def dens_mesh(V,k):
             V[i+k2][j+k] = 0.5*(V[i][j+k]+V[i+k][j+k])
             V[i+k2][j] = 0.5*(V[i][j]+V[i+k][j])
             V[i][j+k2] = 0.5*(V[i][j]+V[i][j+k])
-@nb.jit(nopython=False)
+
 def main():
     V = np.zeros((nx+1, ny+1))
     sArray = {}
@@ -70,8 +70,10 @@ def main():
         plt.xlabel('x')
         plt.ylabel('y')
         plt.title('k='+str(k))
-        plt.imshow(np.rot90(V[::k, ::k]), cmap='turbo')
-        plt.colorbar()
+        plt.imshow(np.rot90(V[::k, ::k]), cmap='turbo',vmin=-1,vmax=1, extent=[0, xmax, 0, ymax])
+        plt.xticks(np.arange(0, 26, 5))
+        plt.yticks(np.arange(0, 26, 5))
+        plt.colorbar(ticks=[-1, -0.5, 0, 0.5, 1])
         plt.savefig('z1_k='+str(k)+'.png',bbox_inches='tight',transparent=True)
         plt.clf() 
         if k != 1:
@@ -83,6 +85,8 @@ def main():
     plt.xlabel('it')
     plt.ylabel('S')
     plt.legend()
+    plt.xticks(np.arange(0, 700, 100))
+    plt.yticks(np.arange(4.2, 5.65, 0.2))
     plt.savefig('z1_S(it).png',bbox_inches='tight',transparent=True)
     plt.clf()
 
