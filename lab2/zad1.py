@@ -15,14 +15,14 @@ def f(t, u):
     return (alpha * u - beta * u**2)
 
 def trapezoidal_picard():
-    t = np.arange(tmax + dt)
+    t = np.arange(0, tmax + dt, dt)
     u = np.zeros(len(t))
     u[0] = u0
     z = N - u
     for i in range(1, len(t)):
         un = u[i-1]
         for j in range(max_iter):
-            u[i] = un + dt/2 * (f(t[i-1], un) + f(t[i], u[i]))
+            u[i] = u[i-1] + dt/2 * (f(t[i], un) + f(t[i-1], u[i-1]))
             if abs(u[i] - un) < TOL:
                 break
             un = u[i]
@@ -30,14 +30,14 @@ def trapezoidal_picard():
     return t, u, z
 
 def trapezoidal_newton():
-    t = np.arange(tmax + dt)
+    t = np.arange(0, tmax + dt, dt)
     u = np.zeros(len(t))
     u[0] = u0
     z = N - u
     for i in range(1, len(t)):
         un = u[i-1]
         for j in range(max_iter):
-            F = lambda x: x - un - dt/2 * (f(t[i-1], un) + f(t[i], x))
+            F = lambda x: x - u[i-1] - dt/2 * (f(t[i-1], u[i-1]) + f(t[i], x))
             dF = lambda x: 1 - dt/2 * beta * (N - 2 * x)
             u[i] = un - F(un) / dF(un)
             if abs(u[i] - un) < TOL:
