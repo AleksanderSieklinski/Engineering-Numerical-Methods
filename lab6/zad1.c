@@ -32,45 +32,47 @@ void metodaPoissona(char useRho, FILE *f, char writeFile){
 	for(int i = 0; i < N+1; i++){
 		ia[i] = -1;
 	}
-	int k = -1;
+	int k = -1; // numeruje niezerowe elementy A
 	for(int l = 0; l < N; l++){
-		int brzeg = 0;
-		double vb = 0;
-		if(i(l, nx) == 0){
+		int brzeg = 0; // wskaźnik położenia : 0- środek obszaru ; 1- brzeg
+		double vb = 0; // potencjal na brzegu
+		if(i(l, nx) == 0){ // lewy brzeg
 			brzeg = 1;
 			vb = V1;
 		}
-		if(j(l, nx) == ny){
+		if(j(l, nx) == ny){ // górny brzeg
 			brzeg = 1;
 			vb = V2;
 		}
-		if(i(l, nx) == nx){
+		if(i(l, nx) == nx){ // prawy brzeg
 			brzeg = 1;
 			vb = V3;
 		}
-		if(j(l, nx) == 0){
+		if(j(l, nx) == 0){ // dolny brzeg
 			brzeg = 1;
 			vb = V4;
 		}
+		// wypełniamy od razu wektor wyrazów wolnych
 		if(brzeg == 1){
-			b[l] = vb;
+			b[l] = vb; // wymuszamy wartość potencjału na brzegu
 		}
 		else{
 			if(useRho == 'y'){
-				b[l] = -rho(i(l, nx), j(l, nx), xmax, ymax);
+				b[l] = -rho(i(l, nx), j(l, nx), xmax, ymax); // jeśli w środku jest gęstość
 			}
 			else
 				b[l] = 0;
 		}
-		ia[l] = -1;
+		// wypełniamy elementy macierzy A
+		ia[l] = -1; // wskaźnik dla pierwszego el. w wierszu
 		//lewa skrajna przekatna
 		if(l - nx - 1 >= 0 && brzeg == 0){
 			k++;
 			if(ia[l] < 0){
 				ia[l] = k;
 			}
-			double epsilon = i(l, nx) <= nx / 2 ? ep1 : ep2;
-			a[k] = epsilon / pow(delta, 2);
+			double ep = i(l, nx) <= nx / 2 ? ep1 : ep2;
+			a[k] = ep / pow(delta, 2);
 			ja[k] = l - nx - 1;
 		}
 		//poddiagonala
@@ -79,8 +81,8 @@ void metodaPoissona(char useRho, FILE *f, char writeFile){
 			if(ia[l] < 0){
 				ia[l] = k;
 			}
-			double epsilon = i(l, nx) <= nx / 2 ? ep1 : ep2;
-			a[k] = epsilon / pow(delta, 2);
+			double ep = i(l, nx) <= nx / 2 ? ep1 : ep2;
+			a[k] = ep / pow(delta, 2);
 			ja[k] = l - 1;
 		}
 		//diagonala
@@ -89,31 +91,31 @@ void metodaPoissona(char useRho, FILE *f, char writeFile){
 			ia[l] = k;
 		}
 		if(brzeg == 0){
-			double epsilon0 = i(l, nx) <= nx / 2 ? ep1 : ep2;
-			double epsilon1 = i(l + 1, nx) <= nx / 2 ? ep1 : ep2;
-			double epsilon2 = i(l + nx + 1, nx) <= ny / 2 ? ep1 : ep2;
-			a[k] = -(2 * epsilon0 + epsilon1 + epsilon2) / pow(delta, 2);
+			double ep0 = i(l, nx) <= nx / 2 ? ep1 : ep2;
+			double ep1 = i(l + 1, nx) <= nx / 2 ? ep1 : ep2;
+			double ep2 = i(l + nx + 1, nx) <= ny / 2 ? ep1 : ep2;
+			a[k] = -(2 * ep0 + ep1 + ep2) / pow(delta, 2);
 
 		}
 		else
 			a[k] = 1;
 		ja[k] = l;
-		//nad diagonala
+		//naddiagonala
 		if(l < N && brzeg == 0){
 			k++;
-			double epsilon = i(l + 1, nx) <= nx / 2 ? ep1 : ep2;
-			a[k] = epsilon / pow(delta, 2);
+			double ep = i(l + 1, nx) <= nx / 2 ? ep1 : ep2;
+			a[k] = ep / pow(delta, 2);
 			ja[k] = l + 1;
 		}
 		//prawa skrajna przekatna
 		if(l < N - nx - 1 && brzeg == 0){
 			k++;
-			double epsilon = i(l + nx + 1, nx) <= nx / 2 ? ep1 : ep2;
-			a[k] = epsilon / pow(delta, 2);
+			double ep = i(l + nx + 1, nx) <= nx / 2 ? ep1 : ep2;
+			a[k] = ep / pow(delta, 2);
 			ja[k] = l + nx + 1;
 		}
 	}
-	int nz_num = k + 1;
+	int nz_num = k + 1; // ilosc niezerowych elementow (1 element ma indeks 0)
 	ia[N] = nz_num;
 	pmgmres_ilu_cr(N, nz_num, ia, ja, a, V, b, 500, 500, 1e-8, 1e-8);
 
