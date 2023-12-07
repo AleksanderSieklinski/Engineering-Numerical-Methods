@@ -91,10 +91,10 @@ void metodaPoissona(char useRho, FILE *f, char writeFile){
 			ia[l] = k;
 		}
 		if(brzeg == 0){
-			double ep0 = i(l, nx) <= nx / 2 ? ep1 : ep2;
-			double ep1 = i(l + 1, nx) <= nx / 2 ? ep1 : ep2;
-			double ep2 = i(l + nx + 1, nx) <= ny / 2 ? ep1 : ep2;
-			a[k] = -(2 * ep0 + ep1 + ep2) / pow(delta, 2);
+			double eps0 = i(l, nx) <= nx / 2 ? ep1 : ep2;
+			double eps1 = i(l + 1, nx) <= nx / 2 ? ep1 : ep2;
+			double eps2 = i(l + nx + 1, nx) <= ny / 2 ? ep1 : ep2;
+			a[k] = -(2 * eps0 + eps1 + eps2) / pow(delta, 2);
 
 		}
 		else
