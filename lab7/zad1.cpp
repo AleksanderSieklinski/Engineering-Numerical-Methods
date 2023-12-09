@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <cmath>
 
 using namespace std;
@@ -117,7 +118,7 @@ void save_to_file(fstream &file, double tab[nx+1][ny+1]){
         file << endl;
     }
 }
-void zad(fstream &file_u, fstream &file_v, fstream &file_psi, fstream &file_zeta, int q){
+void zad(int q){
     double omega;
     double gamma;
     double psi[nx+1][ny+1];
@@ -162,37 +163,32 @@ void zad(fstream &file_u, fstream &file_v, fstream &file_psi, fstream &file_zeta
     // usuwamy brzegi
     border_wipe(psi, zeta);
     // zapisujemy do plikow
-    save_to_file(file_u, u);
-    save_to_file(file_v, v);
-    save_to_file(file_psi, psi);
-    save_to_file(file_zeta, zeta);
+    stringstream ss;
+    ss << "out/u_" << q << ".txt";
+    fstream file(ss.str(), ios::out);
+    save_to_file(file, u);
+    file.close();
+    ss.str("");
+    ss << "out/v_" << q << ".txt";
+    file.open(ss.str(), ios::out);
+    save_to_file(file, v);
+    file.close();
+    ss.str("");
+    ss << "out/psi_" << q << ".txt";
+    file.open(ss.str(), ios::out);
+    save_to_file(file, psi);
+    file.close();
+    ss.str("");
+    ss << "out/zeta_" << q << ".txt";
+    file.open(ss.str(), ios::out);
+    save_to_file(file, zeta);
+    file.close();
 }
 
 int main() {
-    const int numFiles = 12;
-    const char* filenames[numFiles] = {
-        "psi_-4000.txt", "psi_-1000.txt", "psi_4000.txt",
-        "u_-4000.txt", "u_-1000.txt", "u_4000.txt",
-        "v_-4000.txt", "v_-1000.txt", "v_4000.txt",
-        "zeta_-4000.txt", "zeta_-1000.txt", "zeta_4000.txt"
-    };
-    // Open files
-    fstream files[numFiles];
-    for(int i = 0; i < numFiles; ++i) {
-        files[i].open(filenames[i], ios::out);
-    }
-    // Indices for each type of file
-    int psiFiles[] = {0, 1, 2};
-    int uFiles[] = {3, 4, 5};
-    int vFiles[] = {6, 7, 8};
-    int zetaFiles[] = {9, 10, 11};
     int qvalues[] = {-4000, -1000, 4000};
     for(int i = 0; i < 3; ++i) {
-        zad(files[uFiles[i]], files[vFiles[i]], files[psiFiles[i]], files[zetaFiles[i]], qvalues[i]);
-    }
-    // Close files
-    for(int i = 0; i < numFiles; ++i) {
-        files[i].close();
+        zad(qvalues[i]);
     }
     return 0;
 }
