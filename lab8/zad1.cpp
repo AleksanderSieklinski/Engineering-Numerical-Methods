@@ -210,7 +210,7 @@ void zad(){
     }
     float dt = delta / (4.0 * v_max);
     stringstream ss;
-    ss << "out/zad3_tt.txt";
+    ss << "out/zad5_tt.txt";
     fstream file_tt(ss.str(), ios::out);
     file_tt << fixed;
     for(int it=0;it<it_max;it++){
@@ -218,9 +218,6 @@ void zad(){
     }
     file_tt.close();
     ss.str("");
-    // for (int it=1; it<it_max; ++it) {
-    //     file_grid_t1 << t(it, dt) << endl;
-    // }
 
     calc_loop(0.0, vx, vy, dt);
     calc_loop(0.1, vx, vy, dt);

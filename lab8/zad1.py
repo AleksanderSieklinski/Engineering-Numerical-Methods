@@ -35,7 +35,7 @@ def plot_second():
 	c01 = read_data_file("out/zad5_c0.1.txt")
 	xsr0 = read_data_file("out/zad5_xsr0.txt")
 	xsr01 = read_data_file("out/zad5_xsr0.1.txt")
-	t = read_data_file("out/zad3_tt.txt")
+	t = read_data_file("out/zad5_tt.txt")
 	figure1, ((ax1), (ax2)) = plt.subplots(2, 1, figsize=(5, 10))
 	ax1.plot(t, c0, label='D=0.0')
 	ax1.plot(t, c01, label='D=0.1')
