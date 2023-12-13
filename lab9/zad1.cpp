@@ -23,7 +23,7 @@ int main() {
     gsl_vector *c = gsl_vector_alloc(N);
     for (int i = 0; i <= nx; ++i) {
         for (int j = 0; j <= ny; ++j) {
-            int l = i * (ny + 1) + j;
+            int l = j * (ny + 1) + i;
             if (i == 0 || i == nx) {  // warunek Dirichleta na lewej i prawej krawędzi
                 gsl_matrix_set(A, l, l, 1.0);
                 gsl_matrix_set(B, l, l, 1.0);
@@ -31,10 +31,16 @@ int main() {
             } else if (j == 0) {  // warunek von Neumanna na dole
                 gsl_matrix_set(A, l, l, 1.0 + 1.0 / (kD * delta));
                 gsl_matrix_set(A, l, l + nx + 1, -1.0 / (kD * delta));
+                for (int k = 0; k < N; ++k) {
+                    gsl_matrix_set(B, l, k, 0.0);
+                }
                 gsl_vector_set(c, l, TD);
             } else if (j == ny) {  // warunek von Neumanna na górze
                 gsl_matrix_set(A, l, l - nx - 1, -1.0 / (kB * delta));
                 gsl_matrix_set(A, l, l, 1.0 + 1.0 / (kB * delta));
+                for (int k = 0; k < N; ++k) {
+                    gsl_matrix_set(B, l, k, 0.0);
+                }
                 gsl_vector_set(c, l, TB);
             } else {  // środek
                 double a_ll = -2.0 * delta_t / (delta * delta) - 1.0;
@@ -57,7 +63,7 @@ int main() {
     gsl_vector *T = gsl_vector_alloc(N);
     for (int i = 0; i <= nx; ++i) {
         for (int j = 0; j <= ny; ++j) {
-            int l = i * (ny + 1) + j;
+            int l = j * (ny + 1) + i;
             if (i == 0) {
                 gsl_vector_set(T, l, TA);  // lewa krawędź
             } else if (i == nx) {
@@ -87,7 +93,7 @@ int main() {
             std::ofstream file("out/temperature_" + it_str + ".dat");
             for (int i = 0; i <= nx; ++i) {
                 for (int j = 0; j <= ny; ++j) {
-                    int l = i * (ny + 1) + j;
+                    int l = j * (ny + 1) + i;
                     double T_ij = gsl_vector_get(T, l);
                     file << i << " " << j << " " << T_ij << "\n";
                 }
@@ -97,7 +103,7 @@ int main() {
             std::ofstream file_laplacian("out/laplacian_" + it_str + ".dat");
             for (int i = 1; i < nx; ++i) {
                 for (int j = 1; j < ny; ++j) {
-                    int l = i * (ny + 1) + j;
+                    int l = j * (ny + 1) + i;
                     double T_ij = gsl_vector_get(T, l);
                     double T_im1j = gsl_vector_get(T, l - ny - 1);
                     double T_ip1j = gsl_vector_get(T, l + ny + 1);
