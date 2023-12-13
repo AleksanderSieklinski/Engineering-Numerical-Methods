@@ -2,9 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def plot_temperature(it, filename,type):
-    # Load data from file
     data = np.loadtxt(filename)
-    # Reshape data into a 2D array
+    # Podziel dane na kolumny
     x = data[:, 0]
     y = data[:, 1]
     T = data[:, 2]
@@ -13,8 +12,6 @@ def plot_temperature(it, filename,type):
     X = x.reshape(nx, ny)
     Y = y.reshape(nx, ny)
     T = T.reshape(nx, ny)
-
-    # Create plot
     plt.figure(figsize=(6, 5))
     plt.contourf(X, Y, T, 50)
     plt.colorbar()
@@ -34,7 +31,6 @@ def plot_temperature(it, filename,type):
     plt.close()
 
 def main():
-    # Plot temperature maps at it = 100, 200, 500, 1000, 2000
     for it in [100, 200, 500, 1000, 2000]:
         if it < 1000:
             plot_temperature(it, f'out/temperature_0{it}.dat',"t")

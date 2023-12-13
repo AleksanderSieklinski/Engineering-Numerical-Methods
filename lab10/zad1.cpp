@@ -58,7 +58,7 @@ void update(double t) {
         a[i] = (u[i+1] - 2*u[i] + u[i-1]) / (delta * delta) - b * (u[i] - u0[i]) / delta_t + alfa*aFf(i*delta, t, tmax, alfa, xA);
         v[i] = vp[i] + delta_t * a[i] / 2;
     }
-    // Apply boundary conditions
+    // Warunki brzegowe
     u[0] = 0;
     u[nx-1] = 0;
     v[0] = 0;
@@ -69,7 +69,7 @@ double calculate_energy() {
     double energy_1 = pow((u[1] - u[0]) / delta, 2);
     double energy_2 = pow((u[nx] - u[nx-1]) / delta, 2);
     E += delta / 4 * (energy_1 + energy_2);
-    // Calculate the energy at the interior points
+    // Obliczanie energii dla środka
     for(int i = 0; i < nx ; i++) {
         energy_1 = v[i] * v[i];
         energy_2 = pow((u[i+1] - u[i-1]) / (2*delta), 2);
@@ -78,8 +78,8 @@ double calculate_energy() {
     return E;
 }
 int main() {
-    std::vector<double> b_values = {0.0, 0.1, 1.0, 1.0};  // beta values
-    std::vector<double> a_values = {0.0, 0.0, 0.0, 1.0};  // alpha values
+    std::vector<double> b_values = {0.0, 0.1, 1.0, 1.0};  // wartości beta
+    std::vector<double> a_values = {0.0, 0.0, 0.0, 1.0};  // wartości alfa
     for (int i = 0; i < b_values.size(); i++) {
         b = b_values[i];
         alfa = a_values[i];

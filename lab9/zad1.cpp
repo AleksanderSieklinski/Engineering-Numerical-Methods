@@ -18,28 +18,25 @@ const double kD = 0.6;
 const int IT_MAX = 2000;
 
 int main() {
-    // Create matrices and vectors
     gsl_matrix *A = gsl_matrix_alloc(N, N);
     gsl_matrix *B = gsl_matrix_alloc(N, N);
     gsl_vector *c = gsl_vector_alloc(N);
-
-    // Fill A, B and c according to the conditions
     for (int i = 0; i <= nx; ++i) {
         for (int j = 0; j <= ny; ++j) {
             int l = i * (ny + 1) + j;
-            if (i == 0 || i == nx) {  // Dirichlet boundary conditions
+            if (i == 0 || i == nx) {  // warunek Dirichleta na lewej i prawej krawędzi
                 gsl_matrix_set(A, l, l, 1.0);
                 gsl_matrix_set(B, l, l, 1.0);
                 gsl_vector_set(c, l, 0.0);
-            } else if (j == 0) {  // von Neumann boundary condition at the bottom edge
+            } else if (j == 0) {  // warunek von Neumanna na dole
                 gsl_matrix_set(A, l, l, 1.0 + 1.0 / (kD * delta));
                 gsl_matrix_set(A, l, l + nx + 1, -1.0 / (kD * delta));
                 gsl_vector_set(c, l, TD);
-            } else if (j == ny) {  // von Neumann boundary condition at the top edge
+            } else if (j == ny) {  // warunek von Neumanna na górze
                 gsl_matrix_set(A, l, l - nx - 1, -1.0 / (kB * delta));
                 gsl_matrix_set(A, l, l, 1.0 + 1.0 / (kB * delta));
                 gsl_vector_set(c, l, TB);
-            } else {  // inside the area
+            } else {  // środek
                 double a_ll = -2.0 * delta_t / (delta * delta) - 1.0;
                 double a_others = delta_t / (2.0 * delta * delta);
                 gsl_matrix_set(A, l, l - nx - 1, a_others);
@@ -47,7 +44,6 @@ int main() {
                 gsl_matrix_set(A, l, l, a_ll);
                 gsl_matrix_set(A, l, l + 1, a_others);
                 gsl_matrix_set(A, l, l + nx + 1, a_others);
-
                 double b_ll = 2.0 * delta_t / (delta * delta) - 1.0;
                 double b_others = -delta_t / (2.0 * delta * delta);
                 gsl_matrix_set(B, l, l - nx - 1, b_others);
@@ -58,50 +54,36 @@ int main() {
             }
         }
     }
-    
     gsl_vector *T = gsl_vector_alloc(N);
-
-    // Fill T according to the initial conditions
     for (int i = 0; i <= nx; ++i) {
         for (int j = 0; j <= ny; ++j) {
             int l = i * (ny + 1) + j;
             if (i == 0) {
-                gsl_vector_set(T, l, TA);  // left edge
+                gsl_vector_set(T, l, TA);  // lewa krawędź
             } else if (i == nx) {
-                gsl_vector_set(T, l, TC);  // right edge
+                gsl_vector_set(T, l, TC);  // prawa krawędź
             } else {
-                gsl_vector_set(T, l, 0.0);  // other area
+                gsl_vector_set(T, l, 0.0);  // środek
             }
         }
     }
-
-    // LU decomposition
+    // Dekompozycja LU
     gsl_permutation *p = gsl_permutation_alloc(N);
     int signum;
     gsl_linalg_LU_decomp(A, p, &signum);
-
-    // Solve Ax = c
+    // A*x = c
     gsl_vector *x = gsl_vector_alloc(N);
     gsl_linalg_LU_solve(A, p, c, x);
-
-    // Implement CN algorithm
-    // Initialize d vector
+    // Implementacja algorytmu Cranka-Nicolsona
     gsl_vector *d = gsl_vector_alloc(N);
-
-    // Perform IT_MAX steps
-    // Perform IT_MAX steps
     for (int it = 0; it <= IT_MAX; ++it) {
         // d = B * T + c
         gsl_blas_dgemv(CblasNoTrans, 1.0, B, T, 0.0, d);
         gsl_vector_add(d, c);
-
-        // Solve A * T = d
+        // A*T = d
         gsl_linalg_LU_solve(A, p, d, T);
-
-        // Create temperature maps and check Laplacian at specific iterations
         if (it == 100 || it == 200 || it == 500 || it == 1000 || it == 2000) {
             std::string it_str = it < 1000 ? "0" + std::to_string(it) : std::to_string(it);
-            // Create temperature map
             std::ofstream file("out/temperature_" + it_str + ".dat");
             for (int i = 0; i <= nx; ++i) {
                 for (int j = 0; j <= ny; ++j) {
@@ -112,8 +94,6 @@ int main() {
                 file << "\n";
             }
             file.close();
-
-            // Check Laplacian
             std::ofstream file_laplacian("out/laplacian_" + it_str + ".dat");
             for (int i = 1; i < nx; ++i) {
                 for (int j = 1; j < ny; ++j) {
@@ -131,20 +111,12 @@ int main() {
             file_laplacian.close();
         }
     }
-    // Free memory
     gsl_vector_free(d);
-
-    // Create temperature maps at it = 100, 200, 500, 1000, 2000
-
-    // Check if ∇2T = 0 at it = 100, 200, 500, 1000, 2000
-
-    // Free memory
     gsl_matrix_free(A);
     gsl_matrix_free(B);
     gsl_vector_free(c);
     gsl_vector_free(T);
     gsl_vector_free(x);
     gsl_permutation_free(p);
-
     return 0;
 }
