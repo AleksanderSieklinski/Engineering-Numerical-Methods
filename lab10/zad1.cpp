@@ -10,11 +10,10 @@ const int nt = 1000;
 const double delta = 0.1;
 const double delta_t = 0.05;
 const double tmax = nt * delta_t;
-double xA = 7.5;
+const double xA = 7.5;
 const double sigma = 0.5;
 double b = 0.0; // damping coefficient
 double alfa = 0.0; // spring constant
-double aF = 0.0; // forcing term
 
 std::vector<double> u(nx, 0.0);
 std::vector<double> v(nx, 0.0);
@@ -28,22 +27,12 @@ double aFf(double x, double t, double tmax, double alfa, double xF) {
 void initialize() {
     for(int i = 0; i < nx; i++) {
         double x = i * delta;
-        u[i] = exp(-(x - xA)*(x - xA) / (2 * sigma * sigma));
+        u[i] = alfa == 1.0 ? 0.0 : exp(-(x - xA)*(x - xA) / (2 * sigma * sigma));
         v[i] = 0.0;
     }
     u0 = u;
     for(int i = 1; i < nx - 1; i++) {
-        a[i] = (u[i+1] - 2*u[i] + u[i-1]) / (delta * delta) - b * (u[i] - u0[i]) / delta_t + alfa*aFf(i*delta, 0, tmax, alfa, xA);
-    }
-}
-void initialize_zero() {
-    for(int i = 0; i < nx; i++) {
-        u[i] = 0.0;
-        v[i] = 0.0;
-    }
-    u0 = u;
-    for(int i = 0; i < nx ; i++) {
-        a[i] = (u[i+1] - 2*u[i] + u[i-1]) / (delta * delta) - b * (u[i] - u0[i]) / delta_t + alfa*aFf(i*delta, 0, tmax, alfa, xA);
+        a[i] = (u[i+1] - 2*u[i] + u[i-1]) / (delta * delta) - b * (u[i] - u0[i]) / delta_t + alfa*aFf(i*delta, 0, tmax, alfa, alfa==1.0 ? 2.5 : 0);
     }
 }
 void update(double t) {
@@ -55,7 +44,7 @@ void update(double t) {
         u[i] = u[i] + delta_t * vp[i];
     }
     for(int i = 0; i < nx ; i++) {
-        a[i] = (u[i+1] - 2*u[i] + u[i-1]) / (delta * delta) - b * (u[i] - u0[i]) / delta_t + alfa*aFf(i*delta, t, tmax, alfa, xA);
+        a[i] = (u[i+1] - 2*u[i] + u[i-1]) / (delta * delta) - b * (u[i] - u0[i]) / delta_t + alfa*aFf(i*delta, t, tmax, alfa, alfa==1.0 ? 2.5 : 0);
         v[i] = vp[i] + delta_t * a[i] / 2;
     }
     // Warunki brzegowe
@@ -93,13 +82,7 @@ int main() {
         printf("b = %f, alfa = %f\n", b, alfa);
         std::ofstream file("out/output_alfa_" + b_str + "_beta_" + a_str + ".txt");
         std::ofstream energy_file("out/energy_alfa_" + b_str + "_beta_" + a_str + ".txt");
-        if (alfa == 1.0) {
-            xA = 2.5;
-            initialize_zero();
-        }
-        else {
-            initialize();
-        }
+        initialize();
         for(double t = 0; t < tmax; t+=delta_t) {
             update(t);
             double E = calculate_energy();
